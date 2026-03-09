@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TaskStatus {
+  WAITING
+  IN_PROGRESS
+  DONE
+}
+
+model User {
+  id            Int                  @id @default(autoincrement())
+  name          String
+  email         String               @unique
+  password      String
+  authoredTasks Task[]               @relation("TaskAuthor")
+  assignedTasks Task[]               @relation("TaskAssignee")
+  memberships   OrganizationMember[]
+  createdAt     DateTime             @default(now())
+}
+
+model Organization {
+  id        Int                    @id @default(autoincrement())
+  name      String
+  accessKey String                 @unique
+  members   OrganizationMember[]
+  tasks     Task[]
+  createdAt DateTime               @default(now())
+}
+
+model OrganizationMember {
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  organizationId Int
+  role           String       @default("MEMBER")
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  joinedAt       DateTime     @default(now())
+
+  @@unique([userId, organizationId])
+}
+
+model Task {
+  id             Int           @id @default(autoincrement())
+  title          String
+  description    String?
+  status         TaskStatus    @default(WAITING)
+  deadline       DateTime?
+  authorId       Int
+  assigneeId     Int
+  organizationId Int?
+  author         User          @relation("TaskAuthor", fields: [authorId], references: [id])
+  assignee       User          @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime      @default(now())
+}
